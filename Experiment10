@@ -1,0 +1,108 @@
+import random
+import time
+import sys
+
+sys.setrecursionlimit(20000)
+
+# Global counter for comparisons
+count = 0
+
+
+def divide(array, start, end):
+    global count
+
+    pivot = array[end]
+    wall = start - 1
+
+    for index in range(start, end):
+        count += 1
+        if array[index] <= pivot:
+            wall += 1
+            array[wall], array[index] = array[index], array[wall]
+
+    array[wall + 1], array[end] = array[end], array[wall + 1]
+    return wall + 1
+
+
+def quick_sort(array, start, end):
+    if start < end:
+        pos = divide(array, start, end)
+        quick_sort(array, start, pos - 1)
+        quick_sort(array, pos + 1, end)
+
+
+def randomized_quick_sort(array, start, end):
+    if start < end:
+        pivot_index = random.randint(start, end)
+        array[pivot_index], array[end] = array[end], array[pivot_index]
+
+        pos = divide(array, start, end)
+
+        randomized_quick_sort(array, start, pos - 1)
+        randomized_quick_sort(array, pos + 1, end)
+
+
+def evaluate(name, algorithm, data):
+    global count
+
+    arr = data.copy()
+    count = 0
+
+    begin = time.perf_counter()
+
+    algorithm(arr, 0, len(arr) - 1)
+
+    finish = time.perf_counter()
+
+    runtime = (finish - begin) * 1000
+
+    return count, runtime
+
+
+# ---------------- Main Program ---------------- #
+
+SIZE = 5000
+
+datasets = {
+    "Random": [random.randint(1, 100000) for _ in range(SIZE)],
+    "Ascending": list(range(SIZE)),
+    "Descending": list(range(SIZE, 0, -1)),
+    "Almost Sorted": list(range(SIZE))
+}
+
+# Slightly shuffle the almost sorted array
+almost = datasets["Almost Sorted"]
+
+for _ in range(SIZE // 20):
+    a = random.randint(0, SIZE - 1)
+    b = random.randint(0, SIZE - 1)
+    almost[a], almost[b] = almost[b], almost[a]
+
+print("=" * 90)
+print("{:<18}{:>15}{:>18}{:>15}{:>18}".format(
+    "Input Type",
+    "QS Comp",
+    "QS Time(ms)",
+    "RQS Comp",
+    "RQS Time(ms)"
+))
+print("=" * 90)
+
+for name, values in datasets.items():
+    qs_comp, qs_time = evaluate("QS", quick_sort, values)
+    rqs_comp, rqs_time = evaluate("RQS", randomized_quick_sort, values)
+
+    print("{:<18}{:>15}{:>18.2f}{:>15}{:>18.2f}".format(
+        name,
+        qs_comp,
+        qs_time,
+        rqs_comp,
+        rqs_time
+    ))
+
+print("=" * 90)
+print("Observation:")
+print("- Randomized Quick Sort generally performs better on")
+print("  already sorted or reverse sorted inputs because")
+print("  selecting a random pivot reduces the chance of")
+print("  worst-case partitioning.")
