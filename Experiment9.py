@@ -1,134 +1,94 @@
-from itertools import permutations
-import heapq
+# Bin Packing Approximation Algorithms
 
-INF = float("inf")
+def first_fit(items, capacity=1.0):
+    free_space = []
+    bins = []
 
+    for value in items:
+        allocated = False
 
-def matrix_reduction(matrix):
-    """Perform row and column reduction."""
+        for i in range(len(free_space)):
+            if free_space[i] >= value:
+                bins[i].append(value)
+                free_space[i] -= value
+                allocated = True
+                break
 
-    temp = [row[:] for row in matrix]
-    size = len(temp)
-    reduction_cost = 0
+        if not allocated:
+            bins.append([value])
+            free_space.append(capacity - value)
 
-    # Row Reduction
-    for i in range(size):
-        smallest = min(temp[i])
-        if smallest != INF and smallest > 0:
-            reduction_cost += smallest
-            for j in range(size):
-                if temp[i][j] != INF:
-                    temp[i][j] -= smallest
-
-    # Column Reduction
-    for j in range(size):
-        smallest = min(temp[i][j] for i in range(size))
-        if smallest != INF and smallest > 0:
-            reduction_cost += smallest
-            for i in range(size):
-                if temp[i][j] != INF:
-                    temp[i][j] -= smallest
-
-    return temp, reduction_cost
+    return bins
 
 
-def brute_force_tsp(cost_matrix):
-    """Used only to verify the optimal solution."""
-
-    n = len(cost_matrix)
-    nodes = list(range(1, n))
-
-    minimum_cost = INF
-    optimal_path = None
-
-    for order in permutations(nodes):
-        tour = [0] + list(order) + [0]
-
-        total = 0
-        for i in range(n):
-            total += cost_matrix[tour[i]][tour[i + 1]]
-
-        if total < minimum_cost:
-            minimum_cost = total
-            optimal_path = tour
-
-    return optimal_path, minimum_cost
+def first_fit_decreasing(items, capacity=1.0):
+    sorted_items = sorted(items, reverse=True)
+    return first_fit(sorted_items, capacity)
 
 
-def print_matrix(matrix, labels):
-    print("\nCost Matrix\n")
+def best_fit_decreasing(items, capacity=1.0):
+    sorted_items = sorted(items, reverse=True)
 
-    print("     ", end="")
-    for city in labels:
-        print(f"{city:>6}", end="")
-    print()
+    bins = []
+    free_space = []
 
-    for i, row in enumerate(matrix):
-        print(f"{labels[i]:>3} ", end="")
-        for value in row:
-            if value == INF:
-                print(f"{'INF':>6}", end="")
-            else:
-                print(f"{value:>6}", end="")
-        print()
+    for value in sorted_items:
+        best_bin = -1
+        least_space = float("inf")
 
+        for i in range(len(free_space)):
+            remaining = free_space[i] - value
 
-# ---------------- MAIN PROGRAM ---------------- #
+            if remaining >= 0 and remaining < least_space:
+                least_space = remaining
+                best_bin = i
 
-cost = [
-    [INF, 10, 8, 9, 7],
-    [10, INF, 10, 5, 6],
-    [8, 10, INF, 8, 9],
-    [9, 5, 8, INF, 6],
-    [7, 6, 9, 6, INF]
-]
-
-cities = ["A", "B", "C", "D", "E"]
-
-print("=" * 55)
-print(" Travelling Salesman Problem (Branch & Bound)")
-print("=" * 55)
-
-print_matrix(cost, cities)
-
-# Matrix reduction demonstration
-reduced_matrix, lower_bound = matrix_reduction(cost)
-
-print("\nReduced Matrix\n")
-
-print("     ", end="")
-for city in cities:
-    print(f"{city:>6}", end="")
-print()
-
-for i, row in enumerate(reduced_matrix):
-    print(f"{cities[i]:>3} ", end="")
-    for value in row:
-        if value == INF:
-            print(f"{'INF':>6}", end="")
+        if best_bin == -1:
+            bins.append([value])
+            free_space.append(capacity - value)
         else:
-            print(f"{value:>6}", end="")
-    print()
+            bins[best_bin].append(value)
+            free_space[best_bin] -= value
 
-print(f"\nInitial Lower Bound : {lower_bound}")
+    return bins
 
-# Brute force verification
-best_route, best_cost = brute_force_tsp(cost)
 
-print("\nOptimal Tour")
-print("-" * 40)
+def show_result(title, packing):
+    print(f"\n{title}")
+    print("-" * 45)
 
-route = " -> ".join(cities[i] for i in best_route)
-print(route)
+    for i, b in enumerate(packing, start=1):
+        total = sum(b)
+        graph = "#" * int(total * 20)
 
-print(f"\nMinimum Cost : {best_cost}")
+        print(f"Bin {i}: {b}")
+        print(f"Used = {total:.1f} | {graph}")
 
-print("\nPath Details")
-print("-" * 40)
+    print(f"Total Bins Used = {len(packing)}")
 
-for i in range(len(best_route) - 1):
-    u = best_route[i]
-    v = best_route[i + 1]
-    print(f"{cities[u]} -> {cities[v]} : {cost[u][v]}")
 
-print("\nProgram Completed Successfully.")
+# Driver Program
+items = [0.5, 0.7, 0.3, 0.9, 0.2, 0.6, 0.8, 0.4, 0.1, 0.5]
+capacity = 1.0
+
+lower_bound = int(-(-sum(items) // capacity))
+
+print("Items           :", items)
+print("Bin Capacity    :", capacity)
+print("Total Item Size :", round(sum(items), 2))
+print("Lower Bound     :", lower_bound)
+
+ff = first_fit(items, capacity)
+ffd = first_fit_decreasing(items, capacity)
+bfd = best_fit_decreasing(items, capacity)
+
+show_result("First Fit (FF)", ff)
+show_result("First Fit Decreasing (FFD)", ffd)
+show_result("Best Fit Decreasing (BFD)", bfd)
+
+print("\nSummary")
+print("-" * 25)
+print(f"Lower Bound : {lower_bound}")
+print(f"FF  Bins    : {len(ff)}")
+print(f"FFD Bins    : {len(ffd)}")
+print(f"BFD Bins    : {len(bfd)}")
